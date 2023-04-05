@@ -6,7 +6,7 @@ import http.client
 
 PREFIX_LEN = 16
 
-class HashTableClient:
+class DungeonClient:
     def __init__(self, host, port):
         self.host = host
         self.port = port

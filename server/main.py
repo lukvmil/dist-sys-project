@@ -10,8 +10,9 @@ PREFIX_LEN = 16
 def to_str(addr):
     return f'{addr[0]}:{addr[1]}'
 
-class HashTableServer:
-    def __init__(self):
+class DungeonServer:
+    def __init__(self, port):
+        self.port = port
         self.master_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.open_sockets = [self.master_socket]
 
@@ -56,7 +57,7 @@ class HashTableServer:
 
     def bind(self):
         try:
-            self.master_socket.bind(('', 0))
+            self.master_socket.bind(('', self.port))
         except OSError:
             print("Port is already in use!")
             quit()
@@ -64,17 +65,10 @@ class HashTableServer:
         address = self.master_socket.getsockname()
         self.host, self.port = address
         print(f"Bound to {self.host}:{self.port}")
-        # self.open_sockets[to_str(address)] = self.master_socket
 
     def drop_client(self, client):
-        # addr = to_str(client.getpeername())
-        # if addr in self.open_sockets:
-            # del self.open_sockets[addr]
-        # else:
-            # print("Couldn't remove", addr)
         self.open_sockets.remove(client)
         client.close()
-        # import pdb; pdb.set_trace()
         print("Connection closed")
 
     def run_hashtable(self):
@@ -91,7 +85,6 @@ class HashTableServer:
                         client, address = self.master_socket.accept()
                         addr = to_str(address)
 
-                        # self.open_sockets[addr] = client
                         self.open_sockets.append(client)
 
                         print(f'Accepting new connection from', addr)
@@ -126,5 +119,5 @@ class HashTableServer:
         self.run_hashtable()
 
 if __name__ == "__main__":
-    server = HashTableServer()
+    server = HashTableServer(5000)
     server.run()
