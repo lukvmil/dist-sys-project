@@ -79,6 +79,8 @@ class DungeonServer:
             while True:
                 rlist, wlist, xlist = select.select(self.open_sockets, [], [])
 
+                print(rlist)
+
                 for n, s in enumerate(rlist):                    
                     # new client
                     if s == self.master_socket:
@@ -102,7 +104,16 @@ class DungeonServer:
 
                             resp = self.process_request(data_json)
 
+                            for c in self.open_sockets[1:]:
+                                if c != s:
+                                    self.send(c, {
+                                        "msg": data_json["msg"],
+                                        "from": to_str(client.getpeername())
+                                    })
+
                             self.send(client, resp)
+
+                            if data_json['msg'] == 'quit': quit()
 
                             # print("Processed request from", to_str(client.getpeername()))
                             
@@ -119,5 +130,5 @@ class DungeonServer:
         self.run_hashtable()
 
 if __name__ == "__main__":
-    server = HashTableServer(5000)
+    server = DungeonServer(5000)
     server.run()

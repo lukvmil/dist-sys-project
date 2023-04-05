@@ -1,10 +1,18 @@
 import socket
 import time
 import json
+import threading
 import sys
-import http.client
 
 PREFIX_LEN = 16
+
+CSI = b'\x1b['
+CLEAR_LINE = CSI + b'2K'
+CURSOR_UP_ONE = CSI + b'1A'
+
+def emit(*args):
+    sys.stdout.buffer.write(b''.join(args))
+
 
 class DungeonClient:
     def __init__(self, host, port):
@@ -16,7 +24,7 @@ class DungeonClient:
 
     def socket_init(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.settimeout(5)
+        # self.socket.settimeout(5)
 
     def reconnect(self):
         self.close()
@@ -68,33 +76,50 @@ class DungeonClient:
         while True:
             try:
                 self.socket.sendall(prefix_bytes + payload_bytes)
+                break
             except BrokenPipeError:
                 print("Connection to socket closed")
                 self.reconnect()
 
-            resp = None
-            try:
-                resp = self._recv()
-            except (socket.timeout, ConnectionResetError):
-                print("Connection to socket closed")
-                self.reconnect()
+        #     resp = None
+        #     try:
+        #         resp = self._recv()
+        #     except (socket.timeout, ConnectionResetError):
+        #         print("Connection to socket closed")
+        #         self.reconnect()
 
-            if resp:
+        #     if resp:
+        #         break
+        #     else:
+        #         self.reconnect()
+
+        # return resp
+    
+    def receive_data(self):
+        while True:
+            data = self._recv()
+            if not data:
                 break
-            else:
-                self.reconnect()
+            emit(CURSOR_UP_ONE, CLEAR_LINE)
+            print("\n" + str(data)) 
+            print("\n>>> ", end="")
 
-        return resp
+    def send_data(self):
+        print(">>> ", end="")
+        while True:
+            msg = input()
+            # print("\n")
+            print("\n>>> " + msg)
+            emit(CURSOR_UP_ONE)
+            self._send({
+                "msg": msg
+            })
     
 
 if __name__ == "__main__":
-    client = HashTableClient("localhost", 49839)
+    client = DungeonClient("localhost", 5000)
 
-    while True:
-        client._send(
-            json.dumps({
-                "message": "hello world3"
-            })
-        )
-
-        time.sleep(1)
+    recv_thread = threading.Thread(target=client.receive_data)
+    recv_thread.setDaemon(True)
+    recv_thread.start()
+    client.send_data()
