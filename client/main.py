@@ -6,13 +6,13 @@ import sys
 
 PREFIX_LEN = 16
 
-CSI = b'\x1b['
-CLEAR_LINE = CSI + b'2K'
-CURSOR_UP_ONE = CSI + b'1A'
+CSI = b"\x1b["
+CLEAR_LINE = CSI + b"2K"
+CURSOR_UP_ONE = CSI + b"1A"
+PROMPT_INTRO = ">"
 
 def emit(*args):
     sys.stdout.buffer.write(b''.join(args))
-
 
 class DungeonClient:
     def __init__(self, host, port):
@@ -101,19 +101,25 @@ class DungeonClient:
             if not data:
                 break
             emit(CURSOR_UP_ONE, CLEAR_LINE)
-            print("\n" + str(data)) 
-            print("\n>>> ", end="")
+            print("\n" + data['message']) 
+            print("\n" + PROMPT_INTRO + " ", end="")
 
     def send_data(self):
-        print(">>> ", end="")
+        # print("> ", end="")
         while True:
             msg = input()
             # print("\n")
-            print("\n>>> " + msg)
+            print("\n" + PROMPT_INTRO + " " + msg)
             emit(CURSOR_UP_ONE)
-            self._send({
-                "msg": msg
-            })
+
+            words = msg.split()
+
+            payload = {
+                'method': words[0],
+                'args': words[1:]
+            }
+
+            self._send(payload)
     
 
 if __name__ == "__main__":

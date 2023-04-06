@@ -4,8 +4,13 @@ import sys
 import time
 import select
 from multiprocessing import Process
+import commands
 
 PREFIX_LEN = 16
+
+commands_list = {
+    'login': commands.base.Command
+}
 
 def to_str(addr):
     return f'{addr[0]}:{addr[1]}'
@@ -15,10 +20,28 @@ class DungeonServer:
         self.port = port
         self.master_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.open_sockets = [self.master_socket]
+        self.user_table = {}
 
-    def process_request(self, request):
-        print(request)
-        return {'success': True}
+    def process_request(self, client, request):
+        method = request['method']
+        args = request['args']
+
+        response = ''
+
+        if method == "login":
+            ...
+        if method == "":
+            ...
+        elif method == 'new-user':
+            ...
+
+            self.user_table[client] = args[1]
+            response = f"Welcome {args[0]}!"
+
+        elif method == 'shutdown':
+            quit()
+
+        return {'message': response}
     
     def recv(self, conn):
         # print('Waiting for data...')
@@ -71,7 +94,8 @@ class DungeonServer:
         client.close()
         print("Connection closed")
 
-    def run_hashtable(self):
+    def run(self):
+        self.bind()
         self.master_socket.listen(1)
         print(f'Listening on port {self.port}')
         
@@ -89,6 +113,10 @@ class DungeonServer:
 
                         self.open_sockets.append(client)
 
+                        self.send(client, {
+                            "message": "Welcome to Distributed Dungeon! Login with 'login <username> <password>' or 'new-user <username> <password>'"
+                        })
+
                         print(f'Accepting new connection from', addr)
                     
                     # existing client
@@ -102,18 +130,16 @@ class DungeonServer:
                                 self.drop_client(client)
                                 continue
 
-                            resp = self.process_request(data_json)
+                            resp = self.process_request(client, data_json)
 
-                            for c in self.open_sockets[1:]:
-                                if c != s:
-                                    self.send(c, {
-                                        "msg": data_json["msg"],
-                                        "from": to_str(client.getpeername())
-                                    })
+                            # for c in self.open_sockets[1:]:
+                            #     if c != s:
+                            #         self.send(c, {
+                            #             "msg": data_json["msg"],
+                            #             "from": to_str(client.getpeername())
+                            #         })
 
                             self.send(client, resp)
-
-                            if data_json['msg'] == 'quit': quit()
 
                             # print("Processed request from", to_str(client.getpeername()))
                             
@@ -124,10 +150,6 @@ class DungeonServer:
         except KeyboardInterrupt:
             print('Shutting down...')
             return
-
-    def run(self):
-        self.bind()
-        self.run_hashtable()
 
 if __name__ == "__main__":
     server = DungeonServer(5000)
