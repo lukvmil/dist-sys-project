@@ -99,13 +99,16 @@ class DungeonClient:
         while True:
             data = self._recv()
             if not data:
-                break
+                quit()
             emit(CLEAR_LINE, CURSOR_UP_ONE)
             print("\n" + data['message']) 
             print("\n" + PROMPT_INTRO + " ", end="")
 
-    def send_data(self):
+    def send_data(self, recv_thread):
         while True:
+            if not recv_thread.is_alive():
+                quit()
+
             msg = input()
             words = msg.split()
 
@@ -133,4 +136,4 @@ if __name__ == "__main__":
     recv_thread = threading.Thread(target=client.receive_data)
     recv_thread.setDaemon(True)
     recv_thread.start()
-    client.send_data()
+    client.send_data(recv_thread)

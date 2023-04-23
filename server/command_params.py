@@ -18,7 +18,7 @@ def login_required(func):
     return check_login
         
 
-def login_prohibited(func):
+def logout_required(func):
     def check_login(core, client, args):
         if client in core.user_table:
             return "You are already logged in!"

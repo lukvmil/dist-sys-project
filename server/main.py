@@ -1,17 +1,11 @@
 import socket
 import json
-import sys
-import time
 import select
-from multiprocessing import Process
+from mongoengine import connect
+
 import commands
 
 PREFIX_LEN = 16
-
-commands_list = {
-    'login': commands.login,
-    'shutdown': commands.shutdown
-}
 
 def to_str(addr):
     return f'{addr[0]}:{addr[1]}'
@@ -29,8 +23,8 @@ class DungeonServer:
 
         response = ''
 
-        if method in commands_list:
-            cmd = commands_list[method]
+        if method in commands.selet:
+            cmd = commands.select[method]
 
             response = cmd(self, client, args)        
         else:
@@ -147,5 +141,6 @@ class DungeonServer:
             return
 
 if __name__ == "__main__":
+    connect('distributed-dungeon')
     server = DungeonServer(5000)
     server.run()
