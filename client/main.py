@@ -100,24 +100,29 @@ class DungeonClient:
             data = self._recv()
             if not data:
                 break
-            emit(CURSOR_UP_ONE, CLEAR_LINE)
+            emit(CLEAR_LINE, CURSOR_UP_ONE)
             print("\n" + data['message']) 
             print("\n" + PROMPT_INTRO + " ", end="")
 
     def send_data(self):
-        # print("> ", end="")
         while True:
             msg = input()
-            # print("\n")
-            print("\n" + PROMPT_INTRO + " " + msg)
-            emit(CURSOR_UP_ONE)
-
             words = msg.split()
 
+            if not words: continue
+
+            method = words[0]
+            args = words[1:]
+
+            if method == 'quit': quit()
+
             payload = {
-                'method': words[0],
-                'args': words[1:]
+                'method': method,
+                'args': args
             }
+
+            print("\n" + PROMPT_INTRO + " " + msg)
+            emit(CURSOR_UP_ONE)
 
             self._send(payload)
     

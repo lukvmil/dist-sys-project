@@ -9,7 +9,8 @@ import commands
 PREFIX_LEN = 16
 
 commands_list = {
-    'login': commands.base.Command
+    'login': commands.login,
+    'shutdown': commands.shutdown
 }
 
 def to_str(addr):
@@ -28,18 +29,12 @@ class DungeonServer:
 
         response = ''
 
-        if method == "login":
-            ...
-        if method == "":
-            ...
-        elif method == 'new-user':
-            ...
+        if method in commands_list:
+            cmd = commands_list[method]
 
-            self.user_table[client] = args[1]
-            response = f"Welcome {args[0]}!"
-
-        elif method == 'shutdown':
-            quit()
+            response = cmd(self, client, args)        
+        else:
+            response = "Invalid command"
 
         return {'message': response}
     
