@@ -48,7 +48,7 @@ class DungeonClient:
 
         prefix_str = prefix.decode('utf-8')
         if not prefix_str:
-            print("Connection interrupted")
+            # print("Connection interrupted")
             return False
 
         response_len = int(prefix_str)
@@ -99,6 +99,7 @@ class DungeonClient:
         while True:
             data = self._recv()
             if not data:
+                print("Connection closed, pressed enter to continue")
                 quit()
             emit(CLEAR_LINE, CURSOR_UP_ONE)
             print("\n" + data['message']) 
@@ -116,12 +117,13 @@ class DungeonClient:
 
             method = words[0]
             args = words[1:]
+            content = msg[len(method) + 1:]
 
             if method == 'quit': quit()
 
             payload = {
                 'method': method,
-                'args': args
+                'content': content
             }
 
             print("\n" + PROMPT_INTRO + " " + msg)

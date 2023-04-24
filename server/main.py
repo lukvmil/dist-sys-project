@@ -1,14 +1,13 @@
 import socket
 import json
 import select
+from inspect import getmembers, isfunction
 from mongoengine import connect
 
+from models import UserModel
 import commands
 
 PREFIX_LEN = 16
-
-def to_str(addr):
-    return f'{addr[0]}:{addr[1]}'
 
 class DungeonServer:
     def __init__(self, port):
@@ -17,13 +16,15 @@ class DungeonServer:
         self.open_sockets = [self.master_socket]
         self.user_table = {}
 
+    # forwards client requests to be handled by the proper command
     def process_request(self, client, request):
         method = request['method']
-        args = request['args']
+        # args = request['args']
+        args = request['content']
 
         response = ''
 
-        if method in commands.selet:
+        if method in commands.select:
             cmd = commands.select[method]
 
             response = cmd(self, client, args)        
@@ -32,6 +33,7 @@ class DungeonServer:
 
         return {'message': response}
     
+    # handles receiving data from clients
     def recv(self, conn):
         # print('Waiting for data...')
         prefix = conn.recv(PREFIX_LEN)
@@ -56,6 +58,7 @@ class DungeonServer:
 
         return True, data_json
 
+    # handles sending data to clients
     def send(self, conn, payload):
         payload_str = json.dumps(payload)
         payload_bytes = bytes(payload_str, 'utf-8')
@@ -67,6 +70,15 @@ class DungeonServer:
 
         conn.sendall(prefix_bytes + payload_bytes)
 
+    def send_msg(self, conn, msg):
+        self.send(conn, {'message': msg})
+
+    def send_msg_to_all(self, msg, exclude=None):
+        for client in self.user_table.keys():
+            if client != exclude:
+                self.send_msg(client, msg)
+
+    # binds server to port
     def bind(self):
         try:
             self.master_socket.bind(('', self.port))
@@ -83,6 +95,15 @@ class DungeonServer:
         client.close()
         print("Connection closed")
 
+    # returns user model from a client
+    def get_user(self, client):
+        user_id = self.user_table[client]
+        return UserModel.objects(pk=user_id).first()
+    
+    def client_to_str(self, client):
+        addr = client.getpeername()
+        return f'{addr[0]}:{addr[1]}'
+
     def run(self):
         self.bind()
         self.master_socket.listen(1)
@@ -92,13 +113,11 @@ class DungeonServer:
             while True:
                 rlist, wlist, xlist = select.select(self.open_sockets, [], [])
 
-                print(rlist)
-
                 for n, s in enumerate(rlist):                    
                     # new client
                     if s == self.master_socket:
                         client, address = self.master_socket.accept()
-                        addr = to_str(address)
+                        addr = self.client_to_str(client)
 
                         self.open_sockets.append(client)
 
@@ -121,16 +140,9 @@ class DungeonServer:
 
                             resp = self.process_request(client, data_json)
 
-                            # for c in self.open_sockets[1:]:
-                            #     if c != s:
-                            #         self.send(c, {
-                            #             "msg": data_json["msg"],
-                            #             "from": to_str(client.getpeername())
-                            #         })
-
                             self.send(client, resp)
 
-                            # print("Processed request from", to_str(client.getpeername()))
+                            # print("Processed request from", self.client_to_str(client))
                             
                         except ConnectionResetError:
                             self.drop_client(client)
