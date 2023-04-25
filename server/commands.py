@@ -6,7 +6,7 @@ from models import *
 def login(core, client, args):
     username, password = args
 
-    user = UserModel.objects(name=username).first()
+    user = User.objects(name=username).first()
     if not user:
         return "Invalid username"
     
@@ -24,10 +24,10 @@ def login(core, client, args):
 def new_user(core, client, args):
     username, password = args
 
-    if UserModel.objects(name=username).first():
+    if User.objects(name=username).first():
         return "This username is already in use"
 
-    user = UserModel(
+    user = User(
         name=username,
         password=password
     )
@@ -52,6 +52,8 @@ def say(core, client, content):
 def shutdown(core, client, args):
     core.send_msg_to_all("Server is shutting down...")
     quit()
+
+
 
 select = {
     'login': login,

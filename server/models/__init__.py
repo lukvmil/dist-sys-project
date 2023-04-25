@@ -1,2 +1,2 @@
-from .room import RoomModel
-from .user import UserModel
+from .room import Room
+from .user import User

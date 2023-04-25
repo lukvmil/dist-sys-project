@@ -1,10 +1,8 @@
-from .room import RoomModel
-
 from mongoengine import Document
 from mongoengine.fields import *
 
-class UserModel(Document):
-    name = StringField()
+class User(Document):
+    name = StringField(primary_key=True)
     password = StringField()
-    location = ReferenceField(RoomModel)
-    # inventory = ListField(ReferenceField())
+    location = ReferenceField("Room")
+    inventory = ListField(ReferenceField("Item"))

@@ -1,13 +1,15 @@
 import socket
 import json
 import select
-from inspect import getmembers, isfunction
 from mongoengine import connect
+import sys
 
-from models import UserModel
+from models import User
 import commands
 
 PREFIX_LEN = 16
+DEFAULT_PORT = 5000
+MONGO_DATABASE = "dungeon"
 
 class DungeonServer:
     def __init__(self, port):
@@ -98,7 +100,7 @@ class DungeonServer:
     # returns user model from a client
     def get_user(self, client):
         user_id = self.user_table[client]
-        return UserModel.objects(pk=user_id).first()
+        return User.objects(pk=user_id).first()
     
     def client_to_str(self, client):
         addr = client.getpeername()
@@ -153,6 +155,22 @@ class DungeonServer:
             return
 
 if __name__ == "__main__":
-    connect('distributed-dungeon')
-    server = DungeonServer(5000)
+    if len(sys.argv) == 1:
+        print("Using default port", DEFAULT_PORT)
+        port = DEFAULT_PORT
+        
+    
+    elif len(sys.argv) == 2:
+        port_str = sys.argv[1]
+        if port_str.isdigit():
+            port = int(port_str)
+        else:
+            print("Invalid port number")
+            quit()
+    
+    else:
+        print("Usage: main.py [port], leave arg empty to use default")
+
+    connect(MONGO_DATABASE)
+    server = DungeonServer(port)
     server.run()

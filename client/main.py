@@ -5,6 +5,8 @@ import threading
 import sys
 
 PREFIX_LEN = 16
+DEFAULT_HOST = "localhost"
+DEFAULT_PORT = 5000
 
 CSI = b"\x1b["
 CLEAR_LINE = CSI + b"2K"
@@ -97,7 +99,11 @@ class DungeonClient:
     
     def receive_data(self):
         while True:
-            data = self._recv()
+            try:
+                data = self._recv()
+            except (ConnectionResetError):
+                print("Connection to socket closed")
+                quit()
             if not data:
                 print("Connection closed, pressed enter to continue")
                 quit()
@@ -133,6 +139,29 @@ class DungeonClient:
     
 
 if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        print("Using default port", DEFAULT_PORT)
+        print("Using default host", DEFAULT_HOST)
+        port = DEFAULT_PORT
+        host = DEFAULT_HOST
+
+    elif len(sys.argv) == 2:
+        print("Using default port", DEFAULT_PORT)
+        port = DEFAULT_PORT
+        host = sys.argv[1]
+
+    elif len(sys.argv) == 3:
+        host = sys.argv[1]
+        port_str = sys.argv[2]
+        if port_str.isdigit():
+            port = int(port_str)
+        else:
+            print("Invalid port number")
+            quit()
+
+    else:
+        print("Usage: main.py [host] [port], leave args empty to use default")
+
     client = DungeonClient("localhost", 5000)
 
     recv_thread = threading.Thread(target=client.receive_data)
