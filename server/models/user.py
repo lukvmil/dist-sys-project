@@ -6,3 +6,9 @@ class User(Document):
     password = StringField()
     location = ReferenceField("Room")
     inventory = ListField(ReferenceField("Item"))
+
+    def enter_room(self, room):
+        self.location = room
+        room.users.append(self)
+        room.save()
+        self.save()

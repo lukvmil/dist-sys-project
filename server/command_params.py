@@ -1,6 +1,9 @@
+import functools
+
 # passes args as a split list of words or single string, and enforce number of arguments
 def validate_args(count=False, split=True):
     def decorator(func):
+        @functools.wraps(func)
         def check_args(core, client, content):
             args = content.split() if split else content
             if (count != False) and (len(args) != count):
@@ -12,6 +15,7 @@ def validate_args(count=False, split=True):
 
 # command only allowed by logged in users 
 def login_required(func):
+    @functools.wraps(func)
     def check_login(core, client, args):
         if client not in core.user_table:
             return "You must login first!"
@@ -21,6 +25,7 @@ def login_required(func):
         
 # command only allowed by logged out users 
 def logout_required(func):
+    @functools.wraps(func)
     def check_login(core, client, args):
         if client in core.user_table:
             return "You are already logged in!"

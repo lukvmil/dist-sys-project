@@ -1,11 +1,19 @@
 import socket
 import json
 import select
-from mongoengine import connect
 import sys
+from inspect import getmembers, isfunction
+from mongoengine import connect
 
 from models import User
 import commands
+
+# generating command -> function lookup table
+select_command = {
+    name: func
+    for name, func in getmembers(commands, isfunction)
+    if func.__module__ == commands.__name__
+}
 
 PREFIX_LEN = 16
 DEFAULT_PORT = 5000
@@ -20,14 +28,12 @@ class DungeonServer:
 
     # forwards client requests to be handled by the proper command
     def process_request(self, client, request):
-        method = request['method']
-        # args = request['args']
+        # changes new-user -> new_user
+        method = request['method'].replace('-', '_')
         args = request['content']
 
-        response = ''
-
-        if method in commands.select:
-            cmd = commands.select[method]
+        if method in select_command:
+            cmd = select_command[method]
 
             response = cmd(self, client, args)        
         else:

@@ -49,15 +49,11 @@ def say(core, client, content):
     return to_self
 
 @login_required
+def look(core, client, content):
+    user = core.get_user(client)
+    return f"You look around the room and see...\n{user.location.description}"
+
+@login_required
 def shutdown(core, client, args):
     core.send_msg_to_all("Server is shutting down...")
     quit()
-
-
-
-select = {
-    'login': login,
-    'new-user': new_user,
-    'say': say,
-    'shutdown': shutdown
-}
