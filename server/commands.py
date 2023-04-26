@@ -1,4 +1,4 @@
-from command_params import *
+from command_helpers import *
 from models import *
 import world
 
@@ -32,6 +32,10 @@ def new_user(core, client, args):
         name=username,
         password=password
     )
+
+    start = Room.objects(start=True).first()
+    user.enter_room(start)
+
     user.save()
 
     core.user_table[client] = user.id
@@ -52,7 +56,17 @@ def say(core, client, content):
 @login_required
 def look(core, client, content):
     user = core.get_user(client)
-    return f"You look around and see...\n{user.location.description}"
+    room = user.location
+    desc = room.description
+
+    # not alone
+    # if len(room.users) > 1:
+    #     other_users = [u.name for u in room.users]
+    #     other_users.remove(user.name)
+
+    #     desc += f"\n\n{text_array(other_users)} {'is' if is_plural(other_users) else 'are'} also in the room"
+
+    return desc
 
 @login_required
 def reset_world(core, client, args):
@@ -65,3 +79,7 @@ def reset_world(core, client, args):
 def shutdown(core, client, args):
     core.send_msg_to_all("Server is shutting down...")
     quit()
+
+def disconnect(core, client, args):
+    core.drop_client(client)
+    

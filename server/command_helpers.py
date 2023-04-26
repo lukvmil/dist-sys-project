@@ -32,3 +32,22 @@ def logout_required(func):
         else:
             return func(core, client, args)
     return check_login
+
+# converts an array of strings to a gramatically correct english list
+def text_array(arr):
+    string = ""
+    if len(arr) == 1:
+        string = arr[0]
+    
+    elif len(arr) == 2:
+        string = f"{arr[0]} and {arr[1]}"
+    
+    elif len(arr) > 2:
+        for w in arr[:-1]:
+            string += f"{w}, "
+
+        string += f"and {arr[-1]}"
+
+    return string
+
+def is_plural(arr): return len(arr) == 1

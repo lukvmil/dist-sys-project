@@ -15,4 +15,5 @@ def load_rooms():
         room = Room.from_json(json.dumps(r))
         room.save(force_insert=True)
 
-print(load_rooms())
+if __name__ == "__main__":
+    load_rooms()

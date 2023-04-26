@@ -1,7 +1,8 @@
 [
     {
         "name": "cave-mouth",
-        "description": "Sunlight streams down from an opening high above, you seem to be in the bottom of a deep cave."
+        "description": "Sunlight streams down from an opening high above, you seem to be in the bottom of a deep cave.",
+        "start": true
     },
     {
         "name": "store-room",

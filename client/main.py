@@ -17,15 +17,29 @@ def emit(*args):
     sys.stdout.buffer.write(b''.join(args))
 
 class DungeonClient:
-    def __init__(self, host, port):
+    def __init__(self, host, port, quiet=False):
         self.host = host
         self.port = port
-        self.retry_table = {}
+        self.quiet = quiet
         self.socket_init()
         self.connect()
+        sockname = self.send_socket.getsockname()
+        self.client_str = f'{sockname[0]}:{sockname[1]}'
+        self.recv_port = self.recv_socket.getsockname()[1]
+
+        self._send({
+            'method': 'init_recv',
+            'content': ''
+        }, socket=self.recv_socket)
+        
+        self._send({
+            'method': 'init_send',
+            'content': self.recv_port
+        })
 
     def socket_init(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.send_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.recv_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # self.socket.settimeout(5)
 
     def reconnect(self):
@@ -36,17 +50,21 @@ class DungeonClient:
     def connect(self):
         while True:
             try:
-                self.socket.connect((self.host, self.port))
+                self.send_socket.connect((self.host, self.port))
+                self.recv_socket.connect((self.host, self.port))
                 break
             except (ConnectionRefusedError, ConnectionAbortedError):
                 print("Failed to connect to server")
                 time.sleep(1)
 
     def close(self):
-        self.socket.close()
+        self.send_socket.close()
+        self.recv_socket.close()
 
-    def _recv(self):
-        prefix = self.socket.recv(PREFIX_LEN)
+    def _recv(self, socket=None):
+        if not socket: socket = self.recv_socket
+        # print("recv as", socket.getsockname())
+        prefix = socket.recv(PREFIX_LEN)
 
         prefix_str = prefix.decode('utf-8')
         if not prefix_str:
@@ -59,14 +77,16 @@ class DungeonClient:
 
         while len(buffer) < response_len:
             remaining_bytes = response_len - len(buffer)
-            buffer += self.socket.recv(remaining_bytes)
+            buffer += socket.recv(remaining_bytes)
 
         data_str = buffer.decode('utf-8')
         data_json = json.loads(data_str)
 
         return data_json
 
-    def _send(self, payload):
+    def _send(self, payload, socket=None):
+        if not socket: socket = self.send_socket
+        # print("send as", socket.getsockname())
         payload_str = json.dumps(payload)
         payload_bytes = payload_str.encode('utf-8')
 
@@ -77,7 +97,7 @@ class DungeonClient:
 
         while True:
             try:
-                self.socket.sendall(prefix_bytes + payload_bytes)
+                socket.sendall(prefix_bytes + payload_bytes)
                 break
             except BrokenPipeError:
                 print("Connection to socket closed")
@@ -98,6 +118,8 @@ class DungeonClient:
         # return resp
     
     def receive_data(self):
+        latencies = []
+        
         while True:
             try:
                 data = self._recv()
@@ -105,11 +127,26 @@ class DungeonClient:
                 print("Connection to socket closed")
                 quit()
             if not data:
-                print("Connection closed, pressed enter to continue")
+                # print("Connection closed, pressed enter to continue")
+                if latencies:
+                    # print(latencies)
+                    print("avg latency", sum(latencies) / len(latencies))
                 quit()
-            emit(CLEAR_LINE, CURSOR_UP_ONE)
-            print("\n" + data['message']) 
-            print("\n" + PROMPT_INTRO + " ", end="")
+
+            if not self.quiet: emit(CLEAR_LINE, CURSOR_UP_ONE)
+
+            if 'timestamp' in data:
+                before = int(data['timestamp'])
+                after = time.time_ns()
+                elapsed = after - before
+                latencies.append(elapsed / 1_000_000_000)
+                # print(elapsed)
+                # print(before, after, elapsed, elapsed / 1_000_000_000)
+
+            if not self.quiet:
+                print("\n" + data['message'])
+                
+                print("\n" + PROMPT_INTRO + " ", end="")
 
     def send_data(self, recv_thread):
         while True:
@@ -129,11 +166,15 @@ class DungeonClient:
 
             payload = {
                 'method': method,
-                'content': content
+                'content': content,
             }
 
-            print("\n" + PROMPT_INTRO + " " + msg)
-            emit(CURSOR_UP_ONE)
+            # if (method == 'login') or (method == 'new-user'):
+            #     payload['content'] += " " + str(self.recv_port)
+
+            if not self.quiet:
+                print("\n" + PROMPT_INTRO + " " + msg)
+                emit(CURSOR_UP_ONE)
 
             self._send(payload)
     
@@ -162,7 +203,7 @@ if __name__ == "__main__":
     else:
         print("Usage: main.py [host] [port], leave args empty to use default")
 
-    client = DungeonClient("localhost", 5000)
+    client = DungeonClient(host, port)
 
     recv_thread = threading.Thread(target=client.receive_data)
     recv_thread.setDaemon(True)

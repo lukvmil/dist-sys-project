@@ -2,6 +2,7 @@ import socket
 import json
 import select
 import sys
+import time
 from inspect import getmembers, isfunction
 from mongoengine import connect
 
@@ -24,7 +25,9 @@ class DungeonServer:
         self.port = port
         self.master_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.open_sockets = [self.master_socket]
+        self.sock_table = {}
         self.user_table = {}
+        self.recv_table = {}
         self.db = connect(MONGO_DATABASE)
 
     # forwards client requests to be handled by the proper command
@@ -32,6 +35,29 @@ class DungeonServer:
         # changes new-user -> new_user
         method = request['method'].replace('-', '_')
         args = request['content']
+        
+        if method == 'init_send':
+            host, send_port = client.getpeername()
+            recv_port = int(args)
+
+            recv_addr = (host, recv_port)
+            if recv_addr in self.sock_table:
+                self.recv_table[client] = self.sock_table[recv_addr]
+            else:
+                self.recv_table[client] = recv_addr
+
+            return
+            
+
+        elif method == 'init_recv':
+            addr = client.getpeername()
+
+            if addr in self.recv_table.values():
+                index = list(self.recv_table.values()).index(addr)
+                key = list(self.recv_table.keys())[index]
+                self.recv_table[key] = client
+
+            return
 
         if method in select_command:
             cmd = select_command[method]
@@ -39,8 +65,17 @@ class DungeonServer:
             response = cmd(self, client, args)        
         else:
             response = "Invalid command"
+        
+        if response:
+            resp = {'message': response}
+        else:
+            resp = None
 
-        return {'message': response}
+        if 'timestamp' in request:
+            # print(request['timestamp'])
+            resp['timestamp'] = request['timestamp']
+
+        return resp
     
     # handles receiving data from clients
     def recv(self, conn):
@@ -79,8 +114,12 @@ class DungeonServer:
 
         conn.sendall(prefix_bytes + payload_bytes)
 
+    def send_to(self, client, payload):
+        conn = self.recv_table[client]
+        self.send(conn, payload)
+
     def send_msg(self, conn, msg):
-        self.send(conn, {'message': msg})
+        self.send_to(conn, {'message': msg})
 
     def send_msg_to_all(self, msg, exclude=None):
         for client in self.user_table.keys():
@@ -100,9 +139,15 @@ class DungeonServer:
         print(f"Bound to {self.host}:{self.port}")
 
     def drop_client(self, client):
-        self.open_sockets.remove(client)
+        if client in self.open_sockets: self.open_sockets.remove(client)
+        if client in self.user_table:
+            del self.user_table[client]
+        if client in self.recv_table:
+            recv_client = self.recv_table[client]
+            self.drop_client(recv_client)
+            del self.recv_table[client]
         client.close()
-        print("Connection closed")
+        # print("Connection closed")
 
     # returns user model from a client
     def get_user(self, client):
@@ -129,6 +174,7 @@ class DungeonServer:
                         addr = self.client_to_str(client)
 
                         self.open_sockets.append(client)
+                        self.sock_table[address] = client
 
                         self.send(client, {
                             "message": "Welcome to Distributed Dungeon! Login with 'login <username> <password>' or 'new-user <username> <password>'"
@@ -149,9 +195,10 @@ class DungeonServer:
 
                             resp = self.process_request(client, data_json)
 
-                            self.send(client, resp)
+                            if resp:
+                                self.send_to(client, resp)
 
-                            # print("Processed request from", self.client_to_str(client))
+                                # print("Processed request from", self.client_to_str(client))
                             
                         except ConnectionResetError:
                             self.drop_client(client)
