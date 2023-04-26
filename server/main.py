@@ -25,6 +25,7 @@ class DungeonServer:
         self.master_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.open_sockets = [self.master_socket]
         self.user_table = {}
+        self.db = connect(MONGO_DATABASE)
 
     # forwards client requests to be handled by the proper command
     def process_request(self, client, request):
@@ -177,6 +178,5 @@ if __name__ == "__main__":
     else:
         print("Usage: main.py [port], leave arg empty to use default")
 
-    connect(MONGO_DATABASE)
     server = DungeonServer(port)
     server.run()

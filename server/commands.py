@@ -1,5 +1,6 @@
 from command_params import *
 from models import *
+import world
 
 @validate_args(2)
 @logout_required
@@ -51,7 +52,14 @@ def say(core, client, content):
 @login_required
 def look(core, client, content):
     user = core.get_user(client)
-    return f"You look around the room and see...\n{user.location.description}"
+    return f"You look around and see...\n{user.location.description}"
+
+@login_required
+def reset_world(core, client, args):
+    core.send_msg_to_all("Resetting world...")
+    Room.drop_collection()
+    world.load_rooms()
+
 
 @login_required
 def shutdown(core, client, args):

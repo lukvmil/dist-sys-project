@@ -1,0 +1,10 @@
+[
+    {
+        "name": "cave-mouth",
+        "description": "Sunlight streams down from an opening high above, you seem to be in the bottom of a deep cave."
+    },
+    {
+        "name": "store-room",
+        "description": "You are in a small store room dimly lit by a lantern."
+    }
+]
