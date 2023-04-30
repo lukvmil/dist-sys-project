@@ -27,6 +27,7 @@ class DungeonClient:
         self.client_str = f'{sockname[0]}:{sockname[1]}'
         self.recv_port = self.recv_socket.getsockname()[1]
 
+        # initializing send and receive sockets with server
         self._send({
             'method': 'init_recv',
             'content': ''
@@ -40,7 +41,6 @@ class DungeonClient:
     def socket_init(self):
         self.send_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.recv_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.socket.settimeout(5)
 
     def reconnect(self):
         self.close()
@@ -129,7 +129,6 @@ class DungeonClient:
             if not data:
                 # print("Connection closed, pressed enter to continue")
                 if latencies:
-                    # print(latencies)
                     print("avg latency", sum(latencies) / len(latencies))
                 quit()
 
@@ -159,7 +158,6 @@ class DungeonClient:
             if not words: continue
 
             method = words[0]
-            args = words[1:]
             content = msg[len(method) + 1:]
 
             if method == 'quit': quit()
@@ -168,9 +166,6 @@ class DungeonClient:
                 'method': method,
                 'content': content,
             }
-
-            # if (method == 'login') or (method == 'new-user'):
-            #     payload['content'] += " " + str(self.recv_port)
 
             if not self.quiet:
                 print("\n" + PROMPT_INTRO + " " + msg)

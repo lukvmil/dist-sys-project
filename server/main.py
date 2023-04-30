@@ -6,7 +6,7 @@ import time
 from inspect import getmembers, isfunction
 from mongoengine import connect
 
-from models import User
+from models import *
 import commands
 
 # generating command -> function lookup table
@@ -24,45 +24,36 @@ class DungeonServer:
     def __init__(self, port):
         self.port = port
         self.master_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.open_sockets = [self.master_socket]
         self.sock_table = {}
-        self.user_table = {}
         self.recv_table = {}
+        self.user_table = {}
         self.db = connect(MONGO_DATABASE)
 
     # forwards client requests to be handled by the proper command
-    def process_request(self, client, request):
+    def process_request(self, addr, request):
         # changes new-user -> new_user
         method = request['method'].replace('-', '_')
         args = request['content']
         
+        # special method for initializing client send thread
         if method == 'init_send':
-            host, send_port = client.getpeername()
+            host, send_port = addr
             recv_port = int(args)
 
             recv_addr = (host, recv_port)
-            if recv_addr in self.sock_table:
-                self.recv_table[client] = self.sock_table[recv_addr]
-            else:
-                self.recv_table[client] = recv_addr
-
+            # creates send -> recv binding in user_table
+            self.recv_table[addr] = recv_addr
+            print(f"Created recv table for {addr} -> {recv_addr}")
             return
             
-
+        # special method for initializing client receive thread
         elif method == 'init_recv':
-            addr = client.getpeername()
-
-            if addr in self.recv_table.values():
-                index = list(self.recv_table.values()).index(addr)
-                key = list(self.recv_table.keys())[index]
-                self.recv_table[key] = client
-
             return
-
+        
+        # selects command to call from commands module
         if method in select_command:
             cmd = select_command[method]
-
-            response = cmd(self, client, args)        
+            response = cmd(self, addr, args)        
         else:
             response = "Invalid command"
         
@@ -79,7 +70,6 @@ class DungeonServer:
     
     # handles receiving data from clients
     def recv(self, conn):
-        # print('Waiting for data...')
         prefix = conn.recv(PREFIX_LEN)
 
         if not prefix:
@@ -88,14 +78,11 @@ class DungeonServer:
         prefix_str = prefix.decode('utf-8')
         request_len = int(prefix_str)
 
-        # print(f'Awaiting a {request_len} byte request')
-
         buffer = bytearray()
 
         while len(buffer) < request_len:
             remaining_bytes = request_len - len(buffer)
             buffer += conn.recv(remaining_bytes)
-            # print(f'Buffer contains {len(buffer)} bytes')
 
         data_str = buffer.decode('utf-8')
         data_json = json.loads(data_str)
@@ -114,17 +101,26 @@ class DungeonServer:
 
         conn.sendall(prefix_bytes + payload_bytes)
 
-    def send_to(self, client, payload):
-        conn = self.recv_table[client]
+    # forwards a message to a user's receive thread
+    def send_to(self, addr, payload):
+        recv_addr = self.recv_table[addr]
+        conn = self.sock_table[recv_addr]
         self.send(conn, payload)
 
-    def send_msg(self, conn, msg):
-        self.send_to(conn, {'message': msg})
+    def send_msg(self, addr, msg):
+        self.send_to(addr, {'message': msg})
+
+    def send_msg_to_room(self, user, msg):
+        for other in user.location.users:
+            if other == user: continue
+            addr = self.user_table[other.name]
+            self.send_msg(addr, msg)            
 
     def send_msg_to_all(self, msg, exclude=None):
-        for client in self.user_table.keys():
-            if client != exclude:
-                self.send_msg(client, msg)
+        user_addrs = [a for a in list(self.user_table.values()) if isinstance(a, tuple)]
+        for addr in user_addrs:
+            if addr != exclude:
+                self.send_msg(addr, msg)
 
     # binds server to port
     def bind(self):
@@ -138,43 +134,64 @@ class DungeonServer:
         self.host, self.port = address
         print(f"Bound to {self.host}:{self.port}")
 
-    def drop_client(self, client):
-        if client in self.open_sockets: self.open_sockets.remove(client)
-        if client in self.user_table:
-            del self.user_table[client]
-        if client in self.recv_table:
-            recv_client = self.recv_table[client]
-            self.drop_client(recv_client)
-            del self.recv_table[client]
-        client.close()
-        # print("Connection closed")
+    def drop_client(self, addr):
+        if addr in self.sock_table:
+            client = self.sock_table[addr]
+            del self.sock_table[addr]
+            del self.sock_table[client]
+            client.close()
+            print("Connection closed with", addr)
+
+        if addr in self.user_table:
+            user = self.get_user(addr)
+            # removes users from game world
+            room = user.location
+            room.users.remove(user)
+            room.save()
+
+            del self.user_table[addr]
+            del self.user_table[user.name]
+
+        if addr in self.recv_table:
+            recv_addr = self.recv_table[addr]
+            self.drop_client(recv_addr)
+            del self.recv_table[addr]
 
     # returns user model from a client
-    def get_user(self, client):
-        user_id = self.user_table[client]
-        return User.objects(pk=user_id).first()
+    def get_user(self, addr):
+        user_id = self.user_table[addr]
+        if user_id:
+            return User.objects(pk=user_id).first()
+        else:
+            return None
     
-    def client_to_str(self, client):
-        addr = client.getpeername()
-        return f'{addr[0]}:{addr[1]}'
-
+    def get_users(self):
+        users = []
+        for entry in self.user_table.values():
+            user = entry.get('user')
+            if user: users.append(user)
+    
     def run(self):
         self.bind()
         self.master_socket.listen(1)
         print(f'Listening on port {self.port}')
+
+        for room in Room.objects():
+            room.users = []
+            room.save()
         
         try:
             while True:
-                rlist, wlist, xlist = select.select(self.open_sockets, [], [])
+                open_sockets = [s for s in list(self.sock_table.values()) if not isinstance(s, tuple)] + [self.master_socket]
+                rlist, wlist, xlist = select.select(open_sockets, [], [])
 
                 for n, s in enumerate(rlist):                    
                     # new client
                     if s == self.master_socket:
-                        client, address = self.master_socket.accept()
-                        addr = self.client_to_str(client)
+                        client, addr = self.master_socket.accept()
 
-                        self.open_sockets.append(client)
-                        self.sock_table[address] = client
+                        self.sock_table[addr] = client
+                        self.sock_table[client] = addr
 
                         self.send(client, {
                             "message": "Welcome to Distributed Dungeon! Login with 'login <username> <password>' or 'new-user <username> <password>'"
@@ -185,23 +202,23 @@ class DungeonServer:
                     # existing client
                     else:
                         client = s
+                        addr = self.sock_table[client]
 
                         try:
                             success, data_json = self.recv(client)
 
                             if not success:
-                                self.drop_client(client)
+                                self.drop_client(addr)
                                 continue
 
-                            resp = self.process_request(client, data_json)
+                            resp = self.process_request(addr, data_json)
 
                             if resp:
-                                self.send_to(client, resp)
+                                self.send_to(addr, resp)
 
-                                # print("Processed request from", self.client_to_str(client))
                             
                         except ConnectionResetError:
-                            self.drop_client(client)
+                            self.drop_client(addr)
 
 
         except KeyboardInterrupt:

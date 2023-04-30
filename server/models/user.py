@@ -12,3 +12,8 @@ class User(Document):
         room.users.append(self)
         room.save()
         self.save()
+
+    def logout(self):
+        room = self.location
+        room.users.remove(self)
+        room.save()

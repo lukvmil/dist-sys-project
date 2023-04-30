@@ -4,33 +4,34 @@ import functools
 def validate_args(count=False, split=True):
     def decorator(func):
         @functools.wraps(func)
-        def check_args(core, client, content):
+        def check_args(core, addr, content):
             args = content.split() if split else content
+
             if (count != False) and (len(args) != count):
                 return "Invalid number of arguments"
             else:
-                return func(core, client, args)    
+                return func(core, addr, args)    
         return check_args
     return decorator
 
 # command only allowed by logged in users 
 def login_required(func):
     @functools.wraps(func)
-    def check_login(core, client, args):
-        if client not in core.user_table:
+    def check_login(core, addr, args):
+        if addr not in core.user_table:
             return "You must login first!"
         else:
-            return func(core, client, args)
+            return func(core, addr, args)
     return check_login
         
 # command only allowed by logged out users 
 def logout_required(func):
     @functools.wraps(func)
-    def check_login(core, client, args):
-        if client in core.user_table:
+    def check_login(core, addr, args):
+        if addr in core.user_table:
             return "You are already logged in!"
         else:
-            return func(core, client, args)
+            return func(core, addr, args)
     return check_login
 
 # converts an array of strings to a gramatically correct english list
