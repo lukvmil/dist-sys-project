@@ -6,3 +6,4 @@ class Room(Document):
     description = StringField()
     start = BooleanField()
     users = ListField(ReferenceField("User"))
+    features = ListField(ReferenceField("Feature"))

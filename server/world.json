@@ -1,0 +1,35 @@
+[
+    {
+        "name": "cave-mouth",
+        "description": "Sunlight streams down from an opening high above, you seem to be in the bottom of a deep cave.",
+        "start": true,
+        "features": [
+            {
+                "name": "cave-mouth-wooden-door",
+                "tag": "wooden-door",
+                "description": "There is a simple [wooden-door] with an iron handle hidden in the shadows.",
+                "action": {
+                    "type": "move",
+                    "dest": "store-room",
+                    "msg": "You open the door and step into the Store Room"
+                }
+            }
+        ]
+    },
+    {
+        "name": "store-room",
+        "description": "You are in a small store room dimly lit by a lantern.",
+        "features": [
+            {
+                "name": "store-room-wooden-door",
+                "tag": "wooden-door",
+                "description": "There is a simple [wooden-door] with an iron handle hidden in the shadows.",
+                "action": {
+                    "type": "move",
+                    "dest": "cave-mouth",
+                    "msg": "You open the door and step into the mouth of the cave"
+                }
+            }
+        ]
+    }
+]

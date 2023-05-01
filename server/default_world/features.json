@@ -1,0 +1,10 @@
+[
+    {
+        "name": "door",
+        "description": "A simple wooden door with an iron handle.",
+        "action": {
+            "type": "move",
+            "to": "store-room"
+        }
+    }
+]

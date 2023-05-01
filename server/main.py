@@ -8,6 +8,7 @@ from mongoengine import connect
 
 from models import *
 import commands
+import world
 
 # generating command -> function lookup table
 select_command = {
@@ -172,13 +173,18 @@ class DungeonServer:
             if user: users.append(user)
     
     def run(self):
-        self.bind()
-        self.master_socket.listen(1)
-        print(f'Listening on port {self.port}')
+        if 'dungeon' not in self.db.list_database_names():
+            print('Loading default world')
+            world.load_rooms()
 
+        # makes sure rooms are empty on startup
         for room in Room.objects():
             room.users = []
             room.save()
+
+        self.bind()
+        self.master_socket.listen(1)
+        print(f'Listening on port {self.port}')
         
         try:
             while True:
