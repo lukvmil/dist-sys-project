@@ -69,8 +69,14 @@ def look(core, addr, args):
     desc = room.description
 
     if room.features:
+        desc += " "
         for feature in room.features: 
-            desc += "\n" + feature.description
+            desc += feature.description + " "
+
+    if room.items:
+        desc += "\n\n"
+        for item in room.items:
+            desc += item.placement + " "
     
     # not alone
     if len(room.users) > 1:
@@ -83,17 +89,50 @@ def look(core, addr, args):
 
 @validate_args()
 @login_required
+def inventory(core, addr, args):
+    user = core.get_user(addr)
+
+    if user.items:
+        items = [f"[{i.name}]" for i in user.items]
+        return "You are carrying " + text_array(items)
+
+    else:
+        return "You aren't carrying anything."
+
+@validate_args()
+@login_required
+def grab(core, addr, args):
+    user = core.get_user(addr)
+    room = user.location
+
+    target = args[0]
+
+    item = None
+    for i in room.items:
+        if target == i.name:
+            item = i
+            break
+    
+    if not item:
+        return "Couldn't find that in the room"
+    
+    room.items.remove(item)
+    user.items.append(item)
+    room.save()
+    user.save()
+
+    return f"You picked up the [{item.name}]"
+
+@validate_args()
+@login_required
 def use(core, addr, args):
     user = core.get_user(addr)
     room = user.location
 
     target = args[0]
 
-    print(target)
-
     feature = None
     for f in room.features:
-        print(f.tag)
         if target == f.tag:
             feature = f
             break

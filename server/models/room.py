@@ -7,3 +7,4 @@ class Room(Document):
     start = BooleanField()
     users = ListField(ReferenceField("User"))
     features = ListField(ReferenceField("Feature"))
+    items = ListField(ReferenceField("Item"))

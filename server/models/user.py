@@ -6,7 +6,7 @@ class User(Document):
     name = StringField(primary_key=True)
     password = StringField()
     location = ReferenceField("Room")
-    inventory = ListField(ReferenceField("Item"))
+    items = ListField(ReferenceField("Item"))
 
     def move_to(self, room):
         prev_room = self.location

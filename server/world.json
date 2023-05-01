@@ -3,6 +3,13 @@
         "name": "cave-mouth",
         "description": "Sunlight streams down from an opening high above, you seem to be in the bottom of a deep cave.",
         "start": true,
+        "items": [
+            {
+                "name": "small-key",
+                "description": "It's a small iron key on a short length of string.",
+                "placement": "A [small-key] is hanging on the wall."
+            }
+        ],
         "features": [
             {
                 "name": "cave-mouth-wooden-door",

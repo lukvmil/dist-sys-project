@@ -15,6 +15,7 @@ def load_rooms():
 
     for r in rooms:
         features = r.pop("features", None)
+        items = r.pop("items", None)
 
         room = Room.from_json(json.dumps(r))
 
@@ -25,6 +26,12 @@ def load_rooms():
                 feature = Feature.from_json(json.dumps(f))
                 feature.save(force_insert=True)
                 room.features.append(feature)
+
+        if items:
+            for i in items:
+                item = Item.from_json(json.dumps(i))
+                item.save(force_insert=True)
+                room.items.append(item)
 
         room.save(force_insert=True)
 
