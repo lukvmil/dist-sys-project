@@ -68,6 +68,26 @@ def look(core, addr, args):
     room = user.location
     desc = room.description
 
+    if args:
+        target = args[0]
+
+        item = None
+        for i in user.items:
+            if target == i.name:
+                item = i
+                break
+
+        if item: return item.description
+
+        feature = None
+        for f in room.features:
+            if target == f.tag:
+                feature = f
+
+        if feature: return feature.description
+
+        return "Couldn't find that in the room"
+
     if room.features:
         desc += " "
         for feature in room.features: 
