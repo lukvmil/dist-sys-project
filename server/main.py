@@ -44,7 +44,6 @@ class DungeonServer:
             recv_addr = (host, recv_port)
             # creates send -> recv binding in user_table
             self.recv_table[addr] = recv_addr
-            print(f"Created recv table for {addr} -> {recv_addr}")
             return
             
         # special method for initializing client receive thread
@@ -141,7 +140,7 @@ class DungeonServer:
             del self.sock_table[addr]
             del self.sock_table[client]
             client.close()
-            print("Connection closed with", addr)
+            # print("Connection closed with", addr)
 
         if addr in self.user_table:
             user = self.get_user(addr)
@@ -150,6 +149,8 @@ class DungeonServer:
             self.send_msg_to_room(user, f"{user.name} has left the room.")
             room.users.remove(user)
             room.save()
+
+            print(f"User '{user.name}' logged out from {addr}")
 
             del self.user_table[addr]
             del self.user_table[user.name]
@@ -204,7 +205,7 @@ class DungeonServer:
                             "message": "Welcome to Distributed Dungeon! Login with 'login <username> <password>' or 'new-user <username> <password>'"
                         })
 
-                        print(f'Accepting new connection from', addr)
+                        # print(f'Accepting new connection from', addr)
                     
                     # existing client
                     else:

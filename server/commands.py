@@ -10,7 +10,8 @@ def help(core, addr, args):
     logout                          - logs out of a user account
     quit                            - closes out of the game
     say <msg>                       - sends a message to players in your room
-    look / look <target>           - inspects the room, objects in it, or your inventory
+    shout <msg>                     - sends a message to all players
+    look / look <target>            - inspects the room, objects in it, or your inventory
     inventory                       - displays items you are carrying
     grab                            - picks up an item and stores it in your inventory
     use <target>                    - interacts with an object in a room"""
@@ -32,6 +33,8 @@ def login(core, addr, args):
 
     core.user_table[addr] = user.name
     core.user_table[user.name] = addr
+
+    print(f"User '{user.name}' logged in from {addr}")
 
     # rejoining user to room
     room = user.location
@@ -64,6 +67,8 @@ def new_user(core, addr, args):
 
     core.user_table[addr] = user.name
     core.user_table[user.name] = addr
+    print(f"New user '{user.name}' logged in from {addr}")
+
     return f"Hi {user.name}, welcome to Distributed Dungeon!"
 
 @validate_args(split=False)
@@ -76,6 +81,17 @@ def say(core, addr, args):
 
     core.send_msg_to_room(user, to_others)
 
+    return to_self
+
+@validate_args(split=False)
+@login_required
+def shout(core, addr, args):
+    user = core.get_user(addr)
+
+    to_self = f'You shouted "{args}"'
+    to_others = f'{user.name} shouted "{args}"'
+    
+    core.send_msg_to_all(to_others, user)
     return to_self
 
 @validate_args()
@@ -171,6 +187,9 @@ def grab(core, addr, args):
     room.save()
     user.save()
 
+    to_others = f"{user.name} picked up the [{item.name}]."
+    core.send_msg_to_room(user, to_others)
+
     return f"You picked up the [{item.name}]."
 
 @validate_args(1)
@@ -202,6 +221,10 @@ def use(core, addr, args):
                 if 'unlock_description' in action:
                     feature.description = action['unlock_description']
                 feature.save()
+
+                to_others = f"{user.name} opened the [{feature.tag}]."
+                core.send_msg_to_room(user, to_others)
+
                 return action['unlock_msg']
             else:
                 return action['locked_msg']
@@ -236,9 +259,11 @@ def attack(core, addr, args):
     if player_hit:
         enemy.health -= player_hit_damage
         result = f"You hit the [{enemy.tag}] for {player_hit_damage} damage! (It now has {enemy.health} health remaining.)"
+        core.send_msg_to_room(user, f"{user.name} attacked [{enemy.tag}].")
         if enemy.health <= 0:
             result += " With that final blow, it collapses to the floor dead."
             enemy.kill(room)
+            core.send_msg_to_room(user, f"{user.name} killed [{enemy.tag}].")
     else:
         result = "Your attack missed."
 
@@ -253,9 +278,11 @@ def attack(core, addr, args):
     if enemy_hit:
         user.health -= enemy_hit_damage
         result += f"\n\nThe [{enemy.tag}] hit you for {enemy_hit_damage} damage! (You now have {user.health} health remaining.)"
+        core.send_msg_to_room(user, f"{enemy.tag} attacked [{user.name}].")
         if user.health <= 0:
             result += "\nYou died. All of your items were dropped and you will return to the first room."
             user.kill()
+            core.send_msg_to_room(user, f"{enemy.tag} killed [{user.name}].")
     else:
         result += f"\n\nThe [{enemy.tag}]'s attack missed."
 

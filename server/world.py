@@ -20,7 +20,7 @@ def load_rooms():
 
         room = Room.from_json(json.dumps(r))
 
-        print(r)
+        print("Loading room", room.name)
 
         if features:
             for f in features:

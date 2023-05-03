@@ -14,7 +14,7 @@ class User(Document):
 
     def kill(self):
         for i in self.items:
-            i.placement = f"A [{i.name}] is lying atop [{self.name}]'s dead body."
+            i.placement = f"A [{i.name}] is lying atop {self.name}'s dead body."
             i.save()
         self.location.items.extend(self.items)
         self.reset()
