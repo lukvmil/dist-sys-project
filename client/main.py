@@ -3,6 +3,7 @@ import time
 import json
 import threading
 import sys
+import readline
 
 PREFIX_LEN = 16
 DEFAULT_HOST = "localhost"
@@ -15,6 +16,7 @@ PROMPT_INTRO = ">"
 
 def emit(*args):
     sys.stdout.buffer.write(b''.join(args))
+    readline.redisplay()
 
 class DungeonClient:
     def __init__(self, host, port, quiet=False):
