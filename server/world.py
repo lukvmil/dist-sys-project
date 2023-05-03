@@ -16,6 +16,7 @@ def load_rooms():
     for r in rooms:
         features = r.pop("features", None)
         items = r.pop("items", None)
+        enemies = r.pop("enemies", None)
 
         room = Room.from_json(json.dumps(r))
 
@@ -32,6 +33,21 @@ def load_rooms():
                 item = Item.from_json(json.dumps(i))
                 item.save(force_insert=True)
                 room.items.append(item)
+
+        if enemies:
+            for e in enemies:
+                i = e.pop("item", None)
+
+                enemy = Enemy.from_json(json.dumps(e))
+
+                item = None
+                if i: 
+                    item = Item.from_json(json.dumps(i))
+                    item.save(force_insert=True)
+                    enemy.item = item
+                enemy.save(force_insert=True)
+                room.enemies.append(enemy)
+
 
         room.save(force_insert=True)
 

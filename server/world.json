@@ -5,9 +5,9 @@
         "start": true,
         "features": [
             {
-                "name": "cave-mouth-wooden-door",
-                "tag": "wooden-door",
-                "placement": "A simple [wooden-door] is tucked into the rock wall. It looks like it's unlocked.",
+                "name": "cave-mouth-door",
+                "tag": "door",
+                "placement": "A simple wooden [door] is tucked into the rock wall. It looks like it's unlocked.",
                 "description": "The door is made of a dark brown wood with a polished iron handle.",
                 "action": {
                     "type": "move",
@@ -46,10 +46,10 @@
         "description": "You are in a small store room dimly lit by a lantern.",
         "features": [
             {
-                "name": "store-room-wooden-door",
-                "tag": "wooden-door",
+                "name": "store-room-door",
+                "tag": "door",
                 "description": "The door is made of a dark brown wood with a polished iron handle.",
-                "placement": "There is a simple [wooden-door] on one wall.",
+                "placement": "There is a simple wooden [door] on one wall.",
                 "action": {
                     "type": "move",
                     "dest": "cave-mouth",
@@ -67,6 +67,68 @@
     },
     {
         "name": "basement",
-        "description": "Yep, this is a basement..."
+        "description": "You find yourself in a dark cellar, barely lit by the light coming down from above.",
+        "features": [
+            {
+                "name": "basement-ladder",
+                "tag": "ladder",
+                "description": "It looks like it's been here awhile, but it seems sturdy enough.",
+                "placement": "A wooden [ladder] leads up to the trapdoor.",
+                "action": {
+                    "type": "move",
+                    "dest": "cave-mouth",
+                    "move_msg": "You climb up the ladder and emerge from the trapdoor."
+                }
+            },
+            {
+                "name": "basement-door",
+                "tag": "iron-door",
+                "description": "A strange face is hammered into the center of the door, and its eyes seem to follow you.",
+                "placement": "An ominous looking [iron-door] stands across from you.",
+                "action": {
+                    "type": "move",
+                    "dest": "dungeon",
+                    "move_msg": "With some effort you manage to pull the heavy door open and step through, but it slams shut behind you."
+                }
+            }
+        ]
+    },
+    {
+        "name": "dungeon",
+        "description": "Torches line the walls of this underground chamber. Stone bricks line the floor, and you noticed what looks like dried blood covering the walls.",
+        "features": [
+            {
+                "name": "dungeon-iron-door",
+                "tag": "iron-door",
+                "description": "A strange face is hammered into the center of the door, and its eyes seem to follow you.",
+                "placement": "An ominous looking [iron-door] is on one side of the room.",
+                "action": {
+                    "type": "move",
+                    "dest": "basement",
+                    "move_msg": "With some effort you manage to pull the heavy door open and step through, but it slams shut behind you.",
+                    "locked": true,
+                    "required": "dungeon-key",
+                    "locked_msg": "This side requires a key, but you don't have one that fits.",
+                    "unlock_msg": "You insert the [dungeon-key] and twist it, the door unlocks with a satisfying click."
+                }
+            }
+        ],
+        "enemies": [
+            {
+                "name": "dungeon-skeleton",
+                "tag": "skeleton",
+                "placement": "A [skeleton] stands in the corner holding a sword. It's not moving right now, but it seems ready to attack at any moment.",
+                "description": "You notice it has a key hanging from its neck, but it's not going to give it up without a fight.",
+                "health": 10,
+                "accuracy": 3,
+                "damage": 5,
+                "item": 
+                {
+                    "name": "dungeon-key",
+                    "description": "It's an old skeleton key with a handle that looks like a skull.",
+                    "placement": "The [dungeon-key] lies on the floor atop a pile of bones."
+                }
+            }
+        ]
     }
 ]

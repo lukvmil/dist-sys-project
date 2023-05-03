@@ -1,5 +1,6 @@
 from command_helpers import *
 from models import *
+import random
 import world
 
 def help(core, addr, args):
@@ -49,7 +50,10 @@ def new_user(core, addr, args):
 
     user = User(
         name=username,
-        password=password
+        password=password,
+        health=15,
+        accuracy=8,
+        damage=4
     )
 
     start = Room.objects(start=True).first()
@@ -119,6 +123,11 @@ def look(core, addr, args):
         for item in room.items:
             desc += item.placement + " "
     
+    if room.enemies:
+        desc += "\n\n"
+        for enemy in room.enemies:
+            desc += enemy.placement + " "
+    
     # not alone
     if len(room.users) > 1:
         other_users = [u.name for u in room.users]
@@ -135,12 +144,12 @@ def inventory(core, addr, args):
 
     if user.items:
         items = [f"[{i.name}]" for i in user.items]
-        return "You are carrying " + text_array(items) + "."
+        return "You are carrying " + text_array(items) + ". (And your trusty adventurer sword of course!)"
 
     else:
-        return "You aren't carrying anything."
+        return "You aren't carrying anything except for your trusty adventurer sword."
 
-@validate_args()
+@validate_args(1)
 @login_required
 def grab(core, addr, args):
     user = core.get_user(addr)
@@ -164,7 +173,7 @@ def grab(core, addr, args):
 
     return f"You picked up the [{item.name}]."
 
-@validate_args()
+@validate_args(1)
 @login_required
 def use(core, addr, args):
     user = core.get_user(addr)
@@ -188,8 +197,10 @@ def use(core, addr, args):
             item = action['required']
             if user.has(item):
                 del action['locked']
-                feature.placement = action['unlock_placement']
-                feature.description = action['unlock_description']
+                if 'unlock_placement' in action:
+                    feature.placement = action['unlock_placement']
+                if 'unlock_description' in action:
+                    feature.description = action['unlock_description']
                 feature.save()
                 return action['unlock_msg']
             else:
@@ -201,7 +212,55 @@ def use(core, addr, args):
             user.move_to(dest)
             core.send_msg_to_room(user, f"{user.name} has entered the room.")
             return action['move_msg']
+        
+@validate_args(1)
+@login_required
+def attack(core, addr, args):
+    user = core.get_user(addr)
+    room = user.location
+
+    target = args[0]
+
+    enemy = None
+    for e in room.enemies:
+        if target == e.tag:
+            enemy = e
+            break
+
+    if not enemy:
+        return "Couldn't find that in the room."
     
+    player_hit = random.randint(1, 10) < user.accuracy
+    player_hit_damage = random.randint(1, user.damage)
+
+    if player_hit:
+        enemy.health -= player_hit_damage
+        result = f"You hit the [{enemy.tag}] for {player_hit_damage} damage! (It now has {enemy.health} health remaining.)"
+        if enemy.health <= 0:
+            result += " With that final blow, it collapses to the floor dead."
+            enemy.kill(room)
+    else:
+        result = "Your attack missed."
+
+    enemy_hit = random.randint(1, 10) < enemy.accuracy
+    enemy_hit_damage = random.randint(1, enemy.damage)
+
+    enemy.save()
+
+    if enemy.dead:
+        return result
+
+    if enemy_hit:
+        user.health -= enemy_hit_damage
+        result += f"\n\nThe [{enemy.tag}] hit you for {enemy_hit_damage} damage! (You now have {user.health} health remaining.)"
+        if user.health <= 0:
+            result += "\nYou died. All of your items were dropped and you will return to the first room."
+            user.kill()
+    else:
+        result += f"\n\nThe [{enemy.tag}]'s attack missed."
+
+    user.save()
+    return result
 
 @login_required
 def logout(core, addr, args):
@@ -217,6 +276,7 @@ def reset_world(core, addr, args):
     core.send_msg_to_all("Resetting world...")
     Feature.drop_collection()
     Item.drop_collection()
+    Enemy.drop_collection()
     Room.drop_collection()
     world.load_rooms()
     user_addrs = [a for a in list(core.user_table.values()) if isinstance(a, tuple)]

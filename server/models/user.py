@@ -8,7 +8,16 @@ class User(Document):
     password = StringField()
     location = ReferenceField("Room")
     health = IntField()
+    accuracy = IntField()
+    damage = IntField()
     items = ListField(ReferenceField("Item"))
+
+    def kill(self):
+        for i in self.items:
+            i.placement = f"A [{i.name}] is lying atop [{self.name}]'s dead body."
+            i.save()
+        self.location.items.extend(self.items)
+        self.reset()
 
     def move_to(self, room):
         prev_room = self.location

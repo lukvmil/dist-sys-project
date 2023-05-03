@@ -8,3 +8,4 @@ class Room(Document):
     users = ListField(ReferenceField("User"))
     features = ListField(ReferenceField("Feature"))
     items = ListField(ReferenceField("Item"))
+    enemies = ListField(ReferenceField("Enemy"))
