@@ -211,7 +211,7 @@ def use(core, addr, args):
     
     action = feature.action
 
-    if action['type'] == 'move':
+    if action.get('type', None) == 'move':
         if action.get('locked', False):
             item = action['required']
             if user.has(item):
@@ -235,6 +235,9 @@ def use(core, addr, args):
             user.move_to(dest)
             core.send_msg_to_room(user, f"{user.name} has entered the room.")
             return action['move_msg']
+    
+    else:
+        return "You can't do anything with this object."
         
 @validate_args(1)
 @login_required
@@ -278,11 +281,11 @@ def attack(core, addr, args):
     if enemy_hit:
         user.health -= enemy_hit_damage
         result += f"\n\nThe [{enemy.tag}] hit you for {enemy_hit_damage} damage! (You now have {user.health} health remaining.)"
-        core.send_msg_to_room(user, f"{enemy.tag} attacked [{user.name}].")
+        core.send_msg_to_room(user, f"[{enemy.tag}] attacked {user.name}.")
         if user.health <= 0:
             result += "\nYou died. All of your items were dropped and you will return to the first room."
             user.kill()
-            core.send_msg_to_room(user, f"{enemy.tag} killed [{user.name}].")
+            core.send_msg_to_room(user, f"[{enemy.tag}] killed {user.name}.")
     else:
         result += f"\n\nThe [{enemy.tag}]'s attack missed."
 
@@ -311,10 +314,24 @@ def reset_world(core, addr, args):
         user = core.get_user(addr)
         user.reset()
 
-@login_required
 def shutdown(core, addr, args):
     core.send_msg_to_all("Server is shutting down...")
     quit()
+
+def player_count(core, addr, args):
+    return f"{len(core.user_table)//2} players currently online"
+
+def player_list(core, addr, args):
+    user_addrs = [a for a in list(core.user_table.values()) if isinstance(a, tuple)]
+
+    response = ""
+
+    for addr in user_addrs:
+        response += f"{core.user_table[addr]}: {addr}\n"
+    
+    if not response: response = "No players online"
+
+    return response
 
 def disconnect(core, addr, args):
     core.drop_client(addr)

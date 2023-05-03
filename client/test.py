@@ -3,8 +3,9 @@ from main import DungeonClient
 import time
 import uuid
 import random
+import sys
 
-num_clients = 1
+num_clients = int(sys.argv[1])
 clients = [DungeonClient("localhost", 5000, quiet=True) for x in range(num_clients)]
 
 recv_threads = [threading.Thread(target=client.receive_data) for client in clients]
@@ -12,6 +13,7 @@ for rt in recv_threads:
     rt.setDaemon(True)
     rt.start()
 
+count = 0
 for client in clients:
     username = str(uuid.uuid4())
     password = str(uuid.uuid4())
@@ -20,6 +22,9 @@ for client in clients:
         "method": "new-user",
         "content": f"{username} {password}"
     })
+
+    count += 1
+    print("created user", count)
 
 # input()
 

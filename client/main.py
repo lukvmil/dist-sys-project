@@ -48,7 +48,7 @@ class DungeonClient:
         self.connect()
 
     def connect(self):
-        print("Connecting...")
+        if not self.quiet: print("Connecting...")
         while True:
             try:
                 self.send_socket.connect((self.host, self.port))

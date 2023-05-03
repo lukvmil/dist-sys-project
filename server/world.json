@@ -111,6 +111,21 @@
                     "locked_msg": "This side requires a key, but you don't have one that fits.",
                     "unlock_msg": "You insert the [dungeon-key] and twist it, the door unlocks with a satisfying click."
                 }
+            },
+            {
+                "name": "dungeon-gold-door",
+                "tag": "gold-door",
+                "description": "It's ornately decorated with a large crown sigil just above the keyhole, it must've cost a fortune to make.",
+                "placement": "A seemingly solid [gold-door] lies at the far end of the room.",
+                "action": {
+                    "type": "move",
+                    "dest": "treasure-room",
+                    "move_msg": "The gilded door easily swings open on well oiled hinges and you step through.",
+                    "locked": true,
+                    "required": "small-key",
+                    "locked_msg": "You can't open this door without a key. The keyhole seems pretty small.",
+                    "unlock_msg": "The [small-key] fits perfectly and the door springs open after a quick turn."
+                }
             }
         ],
         "enemies": [
@@ -128,6 +143,30 @@
                     "description": "It's an old skeleton key with a handle that looks like a skull.",
                     "placement": "The [dungeon-key] lies on the floor atop a pile of bones."
                 }
+            }
+        ]
+    },
+    {
+        "name": "treasure-room",
+        "description": "The room is filled to the brim with gold, silver, and jewels. The treasure sparkles under the light of an ornate chandelier hanging above.",
+        "features": [
+            {
+                "name": "treasure-room-gold-door",
+                "tag": "gold-door",
+                "description": "It's ornately decorated with a large crown sigil just above the keyhole, it must've cost a fortune to make.",
+                "placement": "A solid [gold-door] stands at the entrance of the room.",
+                "action": {
+                    "type": "move",
+                    "dest": "dungeon",
+                    "move_msg": "The gilded door easily swings open on well oiled hinges and you step through."
+                    
+                }
+            },
+            {
+                "name": "treasure-room-tablet",
+                "tag": "tablet",
+                "description": "You take a closer look and read the inscription: 'You have defeated the Distributed Dungeon, thanks for playing! This short demo was a showcase of all of the features we developed for this project, but we wish we had more time to put together a bigger dungeon with more collaboration, puzzles, and story telling. We had a lot of fun making it though!'",
+                "placement": "A magnificent stone [tablet] lays in the center of the room."
             }
         ]
     }
