@@ -48,13 +48,13 @@ class DungeonClient:
         self.connect()
 
     def connect(self):
+        print("Connecting...")
         while True:
             try:
                 self.send_socket.connect((self.host, self.port))
                 self.recv_socket.connect((self.host, self.port))
                 break
             except (ConnectionRefusedError, ConnectionAbortedError):
-                print("Failed to connect to server")
                 time.sleep(1)
 
     def close(self):

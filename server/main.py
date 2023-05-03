@@ -147,6 +147,7 @@ class DungeonServer:
             user = self.get_user(addr)
             # removes users from game world
             room = user.location
+            self.send_msg_to_room(user, f"{user.name} has left the room.")
             room.users.remove(user)
             room.save()
 

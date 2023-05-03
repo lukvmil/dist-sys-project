@@ -1,25 +1,43 @@
 [
     {
         "name": "cave-mouth",
-        "description": "Sunlight streams down from an opening high above, you seem to be in the bottom of a deep cave.",
+        "description": "Sunlight streams down from an opening high above, you are in the bottom of a narrow ravine.",
         "start": true,
+        "features": [
+            {
+                "name": "cave-mouth-wooden-door",
+                "tag": "wooden-door",
+                "placement": "A simple [wooden-door] is tucked into the rock wall. It looks like it's unlocked.",
+                "description": "The door is made of a dark brown wood with a polished iron handle.",
+                "action": {
+                    "type": "move",
+                    "dest": "store-room",
+                    "move_msg": "You open the door and step through."
+                }
+            },
+            {
+                "name": "cave-mouth-trapdoor",
+                "tag": "trapdoor",
+                "placement": "A thin outline in the stone floor reveals a [trapdoor] below your feet.",
+                "description": "It almost completely blends into its surroundings, but you notice a crack you could use to pry it open.",
+                "action": {
+                    "type": "move",
+                    "dest": "basement",
+                    "move_msg": "You enter the trapdoor and climb down the ladder below.",
+                    "locked": true,
+                    "required": "crowbar",
+                    "locked_msg": "Your fingers aren't able to pry it open, maybe there's a tool you can use.",
+                    "unlock_msg": "You slide the crowbar into the side of the trapdoor and pry it open.",
+                    "unlock_placement": "There is an open [trapdoor] beneath you, leading into a dark hole.",
+                    "unlock_description": "It's made of a thick heavy stone, you can just barely make out a ladder descending into the darkness below."
+                }
+            }
+        ],
         "items": [
             {
                 "name": "small-key",
                 "description": "It's a small iron key on a short length of string.",
                 "placement": "A [small-key] is hanging on the wall."
-            }
-        ],
-        "features": [
-            {
-                "name": "cave-mouth-wooden-door",
-                "tag": "wooden-door",
-                "description": "There is a simple [wooden-door] with an iron handle hidden in the shadows.",
-                "action": {
-                    "type": "move",
-                    "dest": "store-room",
-                    "msg": "You open the door and step into the Store Room"
-                }
             }
         ]
     },
@@ -30,13 +48,25 @@
             {
                 "name": "store-room-wooden-door",
                 "tag": "wooden-door",
-                "description": "There is a simple [wooden-door] with an iron handle hidden in the shadows.",
+                "description": "The door is made of a dark brown wood with a polished iron handle.",
+                "placement": "There is a simple [wooden-door] on one wall.",
                 "action": {
                     "type": "move",
                     "dest": "cave-mouth",
-                    "msg": "You open the door and step into the mouth of the cave"
+                    "move_msg": "You open the door and step through."
                 }
             }
+        ],
+        "items": [
+            {
+                "name": "crowbar",
+                "description": "It's a little bit rusty but seems sturdy enough.",
+                "placement": "An old [crowbar] is leaning against the wall."
+            }
         ]
+    },
+    {
+        "name": "basement",
+        "description": "Yep, this is a basement..."
     }
 ]

@@ -2,6 +2,18 @@ from command_helpers import *
 from models import *
 import world
 
+def help(core, addr, args):
+    return """Commands:
+    login <username> <password>     - logs into a user account
+    new-user <username> <password>  - creates a new user account
+    logout                          - logs out of a user account
+    quit                            - closes out of the game
+    say <msg>                       - sends a message to players in your room
+    look / look <target>           - inspects the room, objects in it, or your inventory
+    inventory                       - displays items you are carrying
+    grab                            - picks up an item and stores it in your inventory
+    use <target>                    - interacts with an object in a room"""
+
 @validate_args(2)
 @logout_required
 def login(core, addr, args):
@@ -42,6 +54,7 @@ def new_user(core, addr, args):
 
     start = Room.objects(start=True).first()
     user.move_to(start)
+    core.send_msg_to_room(user, f"{user.name} has entered the room.")
 
     user.save()
 
@@ -79,6 +92,14 @@ def look(core, addr, args):
 
         if item: return item.description
 
+        item = None
+        for i in room.items:
+            if target == i.name:
+                item = i
+                break
+
+        if item: return item.description
+
         feature = None
         for f in room.features:
             if target == f.tag:
@@ -86,12 +107,12 @@ def look(core, addr, args):
 
         if feature: return feature.description
 
-        return "Couldn't find that in the room"
+        return "Couldn't find that in the room."
 
     if room.features:
         desc += " "
         for feature in room.features: 
-            desc += feature.description + " "
+            desc += feature.placement + " "
 
     if room.items:
         desc += "\n\n"
@@ -103,7 +124,7 @@ def look(core, addr, args):
         other_users = [u.name for u in room.users]
         other_users.remove(user.name)
 
-        desc += f"\n\n{text_array(other_users)} {'is' if is_plural(other_users) else 'are'} also in the room"
+        desc += f"\n\n{text_array(other_users)} {'is' if is_plural(other_users) else 'are'} also in the room."
 
     return desc
 
@@ -114,7 +135,7 @@ def inventory(core, addr, args):
 
     if user.items:
         items = [f"[{i.name}]" for i in user.items]
-        return "You are carrying " + text_array(items)
+        return "You are carrying " + text_array(items) + "."
 
     else:
         return "You aren't carrying anything."
@@ -134,14 +155,14 @@ def grab(core, addr, args):
             break
     
     if not item:
-        return "Couldn't find that in the room"
+        return "Couldn't find that in the room."
     
     room.items.remove(item)
     user.items.append(item)
     room.save()
     user.save()
 
-    return f"You picked up the [{item.name}]"
+    return f"You picked up the [{item.name}]."
 
 @validate_args()
 @login_required
@@ -158,29 +179,49 @@ def use(core, addr, args):
             break
 
     if not feature:
-        return "Couldn't find that in the room"
+        return "Couldn't find that in the room."
     
     action = feature.action
 
     if action['type'] == 'move':
-        dest = Room.objects(pk=action['dest']).first()
-        user.move_to(dest)
-        return action['msg']
+        if action.get('locked', False):
+            item = action['required']
+            if user.has(item):
+                del action['locked']
+                feature.placement = action['unlock_placement']
+                feature.description = action['unlock_description']
+                feature.save()
+                return action['unlock_msg']
+            else:
+                return action['locked_msg']
+
+        else:
+            dest = Room.objects(pk=action['dest']).first()
+            core.send_msg_to_room(user, f"{user.name} has left the room.")
+            user.move_to(dest)
+            core.send_msg_to_room(user, f"{user.name} has entered the room.")
+            return action['move_msg']
     
 
 @login_required
 def logout(core, addr, args):
     user = core.get_user(addr)
     user.logout()
-    return "successfully logged out?"
+    name = core.user_table[addr]
+    del core.user_table[addr]
+    del core.user_table[name]
+    return "Successfully logged out."
 
 @login_required
 def reset_world(core, addr, args):
     core.send_msg_to_all("Resetting world...")
     Feature.drop_collection()
+    Item.drop_collection()
     Room.drop_collection()
     world.load_rooms()
-    for user in User.objects():
+    user_addrs = [a for a in list(core.user_table.values()) if isinstance(a, tuple)]
+    for addr in user_addrs:
+        user = core.get_user(addr)
         user.reset()
 
 @login_required

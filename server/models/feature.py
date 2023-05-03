@@ -5,4 +5,5 @@ class Feature(Document):
     name = StringField(primary_key=True)
     tag = StringField()
     description = StringField()
+    placement = StringField()
     action = DictField()
